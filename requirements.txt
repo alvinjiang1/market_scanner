@@ -1,0 +1,15 @@
+# IBKR Connection
+ib_async>=2.1.0
+
+# Data & Analysis
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Scheduling
+APScheduler>=3.10.0
+
+# Notifications
+requests>=2.31.0          # Telegram/HTTP
+
+# Optional: for better logging
+python-dotenv>=1.0.0      # Load .env for secrets

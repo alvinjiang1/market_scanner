@@ -1,0 +1,30 @@
+# Environment and secrets
+.env
+*.env
+!*.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Project data (runtime)
+data/
+logs/
+reports/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
