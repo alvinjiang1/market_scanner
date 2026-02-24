@@ -13,10 +13,16 @@ import config
 logger = logging.getLogger(__name__)
 
 
-def send_telegram(message: str, parse_mode: Optional[str] = None) -> bool:
-    """Send message via Telegram Bot API."""
-    if not config.TELEGRAM_BOT_TOKEN or not config.TELEGRAM_CHAT_ID:
-        logger.warning("Telegram not configured (TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID)")
+def send_telegram(
+    message: str, parse_mode: Optional[str] = None, chat_id: Optional[str] = None
+) -> bool:
+    """Send message via Telegram Bot API.
+
+    If chat_id is not provided, falls back to config.TELEGRAM_CHAT_ID.
+    """
+    target_chat_id = chat_id or config.TELEGRAM_CHAT_ID
+    if not config.TELEGRAM_BOT_TOKEN or not target_chat_id:
+        logger.warning("Telegram not configured (TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID/chat_id)")
         return False
 
     url = f"https://api.telegram.org/bot{config.TELEGRAM_BOT_TOKEN}/sendMessage"
@@ -24,7 +30,7 @@ def send_telegram(message: str, parse_mode: Optional[str] = None) -> bool:
     max_len = 4000
     for i in range(0, len(message), max_len):
         chunk = message[i : i + max_len]
-        payload = {"chat_id": config.TELEGRAM_CHAT_ID, "text": chunk}
+        payload = {"chat_id": target_chat_id, "text": chunk}
         if parse_mode:
             payload["parse_mode"] = parse_mode
         try:
@@ -34,6 +40,15 @@ def send_telegram(message: str, parse_mode: Optional[str] = None) -> bool:
             logger.error(f"Telegram send failed: {e}")
             return False
     return True
+
+
+def send_telegram_report_to_user(report_content: str, session: str, chat_id: str) -> bool:
+    """
+    Send a report to a single Telegram user.
+    Does not touch email/WhatsApp; intended for per-user subscriptions.
+    """
+    # Telegram text only; truncate defensively
+    return send_telegram(report_content[:4000], parse_mode=None, chat_id=chat_id)
 
 
 def send_email(subject: str, body: str, attachment_path: Optional[Path] = None) -> bool:

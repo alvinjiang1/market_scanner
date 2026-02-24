@@ -6,7 +6,7 @@ Runs automatically on a schedule and provides data for reports.
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Iterable
 
 import pandas as pd
 import numpy as np
@@ -168,12 +168,13 @@ def scan_symbol(symbol: str) -> Optional[StockIndicators]:
     )
 
 
-def run_scanner() -> MarketSnapshot:
+def run_scanner(symbols: Optional[Iterable[str]] = None) -> MarketSnapshot:
     """
-    Run market scanner on all configured symbols.
+    Run market scanner on the given symbols (or default from config).
     Returns a MarketSnapshot with indicators for each stock.
     """
-    all_symbols = list(dict.fromkeys(config.SCAN_SYMBOLS + config.MARKET_INDICATORS))
+    base_symbols = list(symbols) if symbols is not None else list(config.SCAN_SYMBOLS)
+    all_symbols = list(dict.fromkeys(base_symbols + config.MARKET_INDICATORS))
     snapshot = MarketSnapshot(timestamp=datetime.now())
 
     if not connect():
