@@ -32,13 +32,16 @@ SMA_SLOW_PERIOD = int(os.getenv("SMA_SLOW_PERIOD", "50"))
 # Position sizing (shares per trade)
 SHARES_PER_TRADE = int(os.getenv("SHARES_PER_TRADE", "10"))
 
+# Number of past reports to show in the owner's SMA section
+PORTFOLIO_HISTORY_LENGTH = int(os.getenv("PORTFOLIO_HISTORY_LENGTH", "10"))
+
 # Paper trading mode - set to False for real orders
 PAPER_TRADING = os.getenv("PAPER_TRADING", "true").lower() == "true"
 
 # ============== Market Scanner ==============
 # Stocks to scan (can overlap with TRADE_SYMBOLS)
 SCAN_SYMBOLS = [
-    "SPY", "QQQ", "AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA", "TSLA", "JPM"
+    "SPY", "QQQ", "AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA", "TSLA", "MU"
 ]
 
 # Market-wide indicators (SPY/QQQ work as stocks; VIX requires Index contract)
@@ -58,6 +61,10 @@ NOTIFICATION_METHODS = ["telegram"]  # Easiest to set up
 # Telegram (create bot via @BotFather, get chat_id from @userinfobot)
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
+
+# Telegram chat ID that owns the IBKR account.
+# Strategy trades and strategy sections in reports are only for this chat.
+OWNER_TELEGRAM_CHAT_ID = os.getenv("OWNER_TELEGRAM_CHAT_ID", TELEGRAM_CHAT_ID)
 
 # Email (SMTP)
 EMAIL_SMTP_HOST = os.getenv("EMAIL_SMTP_HOST", "smtp.gmail.com")

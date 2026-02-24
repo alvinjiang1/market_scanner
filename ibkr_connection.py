@@ -6,8 +6,7 @@ Handles connection, historical data fetching, and order placement.
 import logging
 from typing import Optional
 
-from ib_async import IB, Stock, util
-from ib_async.ib import BarData
+from ib_async import IB, Stock, util, BarData
 
 import config
 

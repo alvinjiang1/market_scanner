@@ -6,7 +6,7 @@ Buy when fast SMA crosses above slow SMA; sell when fast crosses below slow.
 import logging
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
+from typing import Optional, Iterable
 
 import pandas as pd
 
@@ -134,7 +134,7 @@ def evaluate_symbol(symbol: str) -> Optional[StrategyResult]:
     )
 
 
-def run_strategy():
+def run_strategy(symbols: Optional[Iterable[str]] = None):
     """
     Run SMA crossover strategy on all configured symbols.
     Executes trades based on signals.
@@ -143,9 +143,11 @@ def run_strategy():
         logger.error("Cannot connect to IBKR. Aborting strategy.")
         return []
 
+    trade_symbols = list(symbols) if symbols is not None else list(config.TRADE_SYMBOLS)
+
     results = []
     try:
-        for symbol in config.TRADE_SYMBOLS:
+        for symbol in trade_symbols:
             result = evaluate_symbol(symbol)
             if result:
                 results.append(result)
