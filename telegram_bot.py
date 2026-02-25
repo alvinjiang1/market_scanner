@@ -8,6 +8,7 @@ Commands:
   /setsymbols AAPL,MSFT - set symbols for your report
   /settimes 08:00,20:00 - set delivery times (HH:MM,24h)
   /setfrequency 60      - set report frequency in minutes
+  /timeframe scalping|swing|position - set SMA timeframe/profile
   /help                 - show help
 
 Run with:
@@ -63,12 +64,13 @@ def _handle_start(chat_id: int, username: Optional[str]) -> None:
         "- Frequency (every N minutes)",
         "",
         "Commands:",
-        "/subscribe      - start receiving reports",
-        "/unsubscribe    - stop all reports",
+        "/subscribe          - start receiving reports",
+        "/unsubscribe        - stop all reports",
         "/setsymbols AAPL,MSFT,TSLA",
         "/settimes 08:00,20:00",
         "/setfrequency 60",
-        "/help           - show this help",
+        "/timeframe scalping|swing|position",
+        "/help               - show this help",
     ]
     send_telegram("\n".join(msg_lines), chat_id=str(chat_id))
 
@@ -156,6 +158,29 @@ def _handle_setfrequency(chat_id: int, username: Optional[str], args: str) -> No
     )
 
 
+def _handle_timeframe(chat_id: int, username: Optional[str], args: str) -> None:
+    mode = (args or "").strip().lower()
+    if mode not in {"scalping", "swing", "position"}:
+        send_telegram(
+            "Usage: /timeframe scalping|swing|position",
+            chat_id=str(chat_id),
+        )
+        return
+    user = get_user(chat_id) or TelegramUser(chat_id=chat_id, username=username)
+    user.strategy_type = mode
+    upsert_user(user)
+    if mode == "scalping":
+        desc = "Scalping (5m bars, SMA 20/50)"
+    elif mode == "swing":
+        desc = "Swing (1h bars, SMA 20/50)"
+    else:
+        desc = "Position (1D bars, SMA 50/200)"
+    send_telegram(
+        f"Your SMA timeframe has been set to: {desc}",
+        chat_id=str(chat_id),
+    )
+
+
 def _handle_help(chat_id: int) -> None:
     _handle_start(chat_id, None)
 
@@ -190,6 +215,8 @@ def _process_update(update: dict) -> None:
         _handle_settimes(chat_id, username, args)
     elif cmd == "/setfrequency":
         _handle_setfrequency(chat_id, username, args)
+    elif cmd == "/timeframe":
+        _handle_timeframe(chat_id, username, args)
     elif cmd == "/help":
         _handle_help(chat_id)
 

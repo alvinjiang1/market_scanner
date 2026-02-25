@@ -11,7 +11,7 @@ from zoneinfo import ZoneInfo
 
 import config
 from market_scanner import run_scanner, MarketSnapshot
-from sma_strategy import run_strategy, StrategyResult, Signal
+from sma_strategy import run_strategy, StrategyResult, Signal, _get_sma_settings
 from portfolio_history import record_snapshot, get_recent_history, format_positions
 from markets import infer_market
 
@@ -66,12 +66,18 @@ def format_strategy_report(results: list[StrategyResult]) -> str:
     ]
     for r in results:
         sig_emoji = "🟢 BUY" if r.signal == Signal.BUY else "🔴 SELL" if r.signal == Signal.SELL else "⚪ HOLD"
-        lines.append(f"{r.symbol}: {sig_emoji} | Price: ${r.price:.2f} | Pos: {r.current_position}")
+        lines.append(
+            f"{r.symbol}: {sig_emoji} | Price: ${r.price:.2f} | "
+            f"SMA_fast: ${r.fast_sma:.2f} | SMA_slow: ${r.slow_sma:.2f} | Pos: {r.current_position}"
+        )
         lines.append(f"   {r.message}")
     return "\n".join(lines)
 
 
-def build_strategy_section(strategy_symbols: Optional[Iterable[str]] = None) -> str:
+def build_strategy_section(
+    strategy_symbols: Optional[Iterable[str]] = None,
+    strategy_type: Optional[str] = None,
+) -> str:
     """Build the SMA strategy section, handling errors gracefully."""
     lines: list[str] = []
 
@@ -103,9 +109,23 @@ def build_strategy_section(strategy_symbols: Optional[Iterable[str]] = None) -> 
         lines.append("(Failed to load positions)")
         lines.append("")
 
-    # 3) SMA strategy results
+    # 3) SMA strategy settings + results
     try:
-        results = run_strategy(strategy_symbols)
+        settings = _get_sma_settings(strategy_type)
+        bar = settings["bar_size"]
+        fast = settings["fast"]
+        slow = settings["slow"]
+        mode = (strategy_type or config.SMA_STRATEGY_TYPE or "position").lower()
+        lines.append("=== SMA STRATEGY SETTINGS ===")
+        lines.append(f"Mode: {mode}")
+        lines.append(f"Timeframe: {bar}")
+        lines.append(f"SMA fast/slow: {fast}/{slow}")
+        lines.append("")
+    except Exception as e:
+        logger.warning(f"Strategy settings section failed: {e}")
+
+    try:
+        results = run_strategy(strategy_symbols, strategy_type=strategy_type)
         lines.append(format_strategy_report(results))
     except Exception as e:
         logger.warning(f"Strategy report failed: {e}")
@@ -120,6 +140,7 @@ def generate_report(
     symbols: Optional[Iterable[str]] = None,
     include_strategy: bool = True,
     strategy_symbols: Optional[Iterable[str]] = None,
+    strategy_type: Optional[str] = None,
 ) -> str:
     """
     Generate full report: market scan + (optionally) strategy evaluation.
@@ -149,14 +170,14 @@ def generate_report(
     ]
 
     # Market scan
-    snapshot = run_scanner(symbols=symbols)
+    snapshot = run_scanner(symbols=symbols, strategy_type=strategy_type)
     lines.append(format_market_report(snapshot, session))
     lines.append("")
     lines.append("")
 
     # SMA strategy (optional - run during trading hours only for post-market, or both)
     if include_strategy:
-        lines.append(build_strategy_section(strategy_symbols))
+        lines.append(build_strategy_section(strategy_symbols, strategy_type=strategy_type))
 
     return "\n".join(lines)
 

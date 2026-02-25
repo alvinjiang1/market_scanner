@@ -27,6 +27,7 @@ class TelegramUser:
     symbols: List[str] | None = None
     times: List[str] | None = None  # "HH:MM" strings
     frequency_minutes: int | None = None  # If set, send every N minutes
+    strategy_type: str | None = None  # "scalping", "swing", "position"
 
     def effective_symbols(self) -> List[str]:
         from config import SCAN_SYMBOLS
@@ -39,6 +40,14 @@ class TelegramUser:
         # If the user explicitly chose symbols, use them for strategy too;
         # otherwise fall back to the global strategy universe.
         return self.symbols or list(TRADE_SYMBOLS)
+
+    def effective_strategy_type(self) -> str:
+        from config import SMA_STRATEGY_TYPE
+
+        mode = (self.strategy_type or SMA_STRATEGY_TYPE or "position").lower()
+        if mode not in {"scalping", "swing", "position"}:
+            return "position"
+        return mode
 
     def effective_times(self) -> List[str]:
         from config import REPORT_TIMES

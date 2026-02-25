@@ -25,7 +25,10 @@ IBKR_MARKET_DATA_TYPE = int(os.getenv("IBKR_MARKET_DATA_TYPE", "3"))
 # Symbols to trade (edit with your target securities)
 TRADE_SYMBOLS = ["SPY", "QQQ", "AAPL", "MSFT"]
 
-# SMA periods: buy when fast crosses above slow, sell when fast crosses below slow
+# Strategy type: "scalping", "swing", or "position"
+SMA_STRATEGY_TYPE = os.getenv("SMA_STRATEGY_TYPE", "position").lower()
+
+# Legacy custom SMA periods (used only if you later add a 'custom' mode)
 SMA_FAST_PERIOD = int(os.getenv("SMA_FAST_PERIOD", "10"))
 SMA_SLOW_PERIOD = int(os.getenv("SMA_SLOW_PERIOD", "50"))
 

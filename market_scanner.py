@@ -13,6 +13,7 @@ import numpy as np
 
 import config
 from ibkr_connection import connect, disconnect, fetch_historical_bars, bars_to_dataframe
+from sma_strategy import _get_sma_settings
 
 logger = logging.getLogger(__name__)
 
@@ -92,12 +93,14 @@ def get_trend(sma_20: float, sma_50: float, rsi: float) -> str:
     return "neutral"
 
 
-def scan_symbol(symbol: str) -> Optional[StockIndicators]:
+def scan_symbol(symbol: str, strategy_type: Optional[str] = None) -> Optional[StockIndicators]:
     """Compute indicators for a single symbol."""
+    # Align scanner timeframe with SMA strategy settings so prices/SMA context match.
+    settings = _get_sma_settings(strategy_type)
     bars = fetch_historical_bars(
         symbol,
-        duration="3 M",
-        bar_size="1 day",
+        duration=settings["duration"],
+        bar_size=settings["bar_size"],
     )
     if not bars:
         return StockIndicators(
@@ -168,7 +171,7 @@ def scan_symbol(symbol: str) -> Optional[StockIndicators]:
     )
 
 
-def run_scanner(symbols: Optional[Iterable[str]] = None) -> MarketSnapshot:
+def run_scanner(symbols: Optional[Iterable[str]] = None, strategy_type: Optional[str] = None) -> MarketSnapshot:
     """
     Run market scanner on the given symbols (or default from config).
     Returns a MarketSnapshot with indicators for each stock.
@@ -184,7 +187,7 @@ def run_scanner(symbols: Optional[Iterable[str]] = None) -> MarketSnapshot:
     try:
         for symbol in all_symbols:
             try:
-                indicators = scan_symbol(symbol)
+                indicators = scan_symbol(symbol, strategy_type=strategy_type)
                 if indicators:
                     snapshot.stocks.append(indicators)
                     if indicators.error:
