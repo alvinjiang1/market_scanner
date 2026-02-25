@@ -32,6 +32,7 @@ def _run_scheduled_report():
         # explicitly set symbols.
         scan_symbols = None
         strategy_symbols = None
+        strategy_type = None
         if config.OWNER_TELEGRAM_CHAT_ID:
             try:
                 owner_chat_id = int(config.OWNER_TELEGRAM_CHAT_ID)
@@ -39,15 +40,18 @@ def _run_scheduled_report():
                 if owner:
                     scan_symbols = owner.effective_symbols()
                     strategy_symbols = owner.effective_strategy_symbols()
+                    strategy_type = owner.effective_strategy_type()
             except ValueError:
                 scan_symbols = None
                 strategy_symbols = None
+                strategy_type = None
 
         report = generate_report(
             session,
             symbols=scan_symbols,
             include_strategy=True,
             strategy_symbols=strategy_symbols,
+            strategy_type=strategy_type,
         )
         save_report(report)
         send_report(report, session)
@@ -99,6 +103,7 @@ def _run_user_reports():
                     symbols=user.effective_symbols(),
                     include_strategy=True,
                     strategy_symbols=user.effective_strategy_symbols(),
+                    strategy_type=user.effective_strategy_type(),
                 )
             else:
                 # Other users get only the scanner section; no strategy details or trades.
@@ -106,6 +111,7 @@ def _run_user_reports():
                     session,
                     symbols=user.effective_symbols(),
                     include_strategy=False,
+                    strategy_type=user.effective_strategy_type(),
                 )
             save_report(report)
             send_telegram_report_to_user(report, session, chat_id=str(user.chat_id))
@@ -153,6 +159,7 @@ def run_report_now(session: str = "manual"):
     # Treat manual run as an owner-style report if OWNER_TELEGRAM_CHAT_ID is configured
     scan_symbols = None
     strategy_symbols = None
+    strategy_type = None
     if config.OWNER_TELEGRAM_CHAT_ID:
         try:
             owner_chat_id = int(config.OWNER_TELEGRAM_CHAT_ID)
@@ -160,15 +167,18 @@ def run_report_now(session: str = "manual"):
             if owner:
                 scan_symbols = owner.effective_symbols()
                 strategy_symbols = owner.effective_strategy_symbols()
+                strategy_type = owner.effective_strategy_type()
         except ValueError:
             scan_symbols = None
             strategy_symbols = None
+            strategy_type = None
 
     report = generate_report(
         session,
         symbols=scan_symbols,
         include_strategy=True,
         strategy_symbols=strategy_symbols,
+        strategy_type=strategy_type,
     )
     path = save_report(report)
     send_report(report, session)

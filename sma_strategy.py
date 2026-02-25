@@ -48,6 +48,39 @@ def compute_sma(df: pd.DataFrame, fast: int, slow: int) -> pd.DataFrame:
     return df
 
 
+def _get_sma_settings(strategy_type: Optional[str] = None) -> dict:
+    """
+    Return settings for the current SMA strategy type.
+
+    Types:
+      - scalping: 5 min bars, 20/50 SMA
+      - swing:   1h bars, 20/50 SMA
+      - position (default): 1D bars, 50/200 SMA
+    """
+    mode = (strategy_type or getattr(config, "SMA_STRATEGY_TYPE", "position")).lower()
+    if mode == "scalping":
+        return {
+            "duration": "2 D",
+            "bar_size": "5 mins",
+            "fast": 20,
+            "slow": 50,
+        }
+    if mode == "swing":
+        return {
+            "duration": "30 D",
+            "bar_size": "1 hour",
+            "fast": 20,
+            "slow": 50,
+        }
+    # position (default)
+    return {
+        "duration": "12 M",
+        "bar_size": "1 day",
+        "fast": 50,
+        "slow": 200,
+    }
+
+
 def detect_crossover(df: pd.DataFrame) -> Signal:
     """
     Detect SMA crossover on the latest bars.
@@ -83,24 +116,26 @@ def detect_crossover(df: pd.DataFrame) -> Signal:
     return Signal.HOLD
 
 
-def evaluate_symbol(symbol: str) -> Optional[StrategyResult]:
+def evaluate_symbol(symbol: str, strategy_type: Optional[str] = None) -> Optional[StrategyResult]:
     """
-    Evaluate SMA crossover for a single symbol.
+    Evaluate SMA crossover for a single symbol using the configured strategy type.
     Fetches data, computes SMAs, and returns signal.
     """
+    settings = _get_sma_settings(strategy_type)
+
     bars = fetch_historical_bars(
         symbol,
-        duration="3 M",
-        bar_size="1 day",
+        duration=settings["duration"],
+        bar_size=settings["bar_size"],
     )
     if not bars:
         return None
 
     df = bars_to_dataframe(bars)
-    if df is None or len(df) < config.SMA_SLOW_PERIOD:
+    if df is None or len(df) < settings["slow"]:
         return None
 
-    df = compute_sma(df, config.SMA_FAST_PERIOD, config.SMA_SLOW_PERIOD)
+    df = compute_sma(df, settings["fast"], settings["slow"])
     signal = detect_crossover(df)
 
     latest = df.iloc[-1]
@@ -117,9 +152,9 @@ def evaluate_symbol(symbol: str) -> Optional[StrategyResult]:
             break
 
     if signal == Signal.BUY:
-        message = f"Golden cross: SMA{config.SMA_FAST_PERIOD} crossed above SMA{config.SMA_SLOW_PERIOD}"
+        message = f"Golden cross: SMA{settings['fast']} crossed above SMA{settings['slow']}"
     elif signal == Signal.SELL:
-        message = f"Death cross: SMA{config.SMA_FAST_PERIOD} crossed below SMA{config.SMA_SLOW_PERIOD}"
+        message = f"Death cross: SMA{settings['fast']} crossed below SMA{settings['slow']}"
     else:
         message = "No crossover signal"
 
@@ -134,7 +169,7 @@ def evaluate_symbol(symbol: str) -> Optional[StrategyResult]:
     )
 
 
-def run_strategy(symbols: Optional[Iterable[str]] = None):
+def run_strategy(symbols: Optional[Iterable[str]] = None, strategy_type: Optional[str] = None):
     """
     Run SMA crossover strategy on all configured symbols.
     Executes trades based on signals.
@@ -148,14 +183,14 @@ def run_strategy(symbols: Optional[Iterable[str]] = None):
     results = []
     try:
         for symbol in trade_symbols:
-            result = evaluate_symbol(symbol)
+            result = evaluate_symbol(symbol, strategy_type=strategy_type)
             if result:
                 results.append(result)
 
-                if result.signal == Signal.BUY and result.current_position <= 0:
+                if result.signal == Signal.BUY:
                     place_market_order(symbol, "BUY", config.SHARES_PER_TRADE)
                 elif result.signal == Signal.SELL and result.current_position > 0:
-                    place_market_order(symbol, "SELL", min(result.current_position, config.SHARES_PER_TRADE))
+                    place_market_order(symbol, "SELL", result.current_position)
     finally:
         disconnect()
 
